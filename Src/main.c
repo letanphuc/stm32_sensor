@@ -262,7 +262,7 @@ static void MX_GPIO_Init(void)
 	/*Configure GPIO pins : PA0 PA1 PA2 PA3
 	                         PA4 PA5 PA8 PA9
 	                         PA10 PA15 */
-	GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3
+	GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3
 						  |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_8|GPIO_PIN_9
 						  |GPIO_PIN_10|GPIO_PIN_15;
 	GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;

@@ -3,8 +3,8 @@
 
 #include "stm32f1xx_hal_def.h"
 
-#define MINIMUM_DELAY 10
-#define CALIB_TIMER 922
+#define MINIMUM_DELAY 30
+#define CALIB_TIMER 999
 
 /**
  * a struct to communicate with main function.

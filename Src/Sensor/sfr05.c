@@ -118,7 +118,7 @@ static uint8_t srf05_new_data(void)
 static float srf05_get_data(void)
 {
 	srf05.new_data = 0;
-	return srf05.value;
+	return (float)srf05.value;
 }
 /**
  * @brief run hard work, this function will takes time so it need to be run in
@@ -130,9 +130,10 @@ static uint8_t srf05_perform(void)
 	if (srf05.need_perform)
 	{
 		/* run filter than set new_data */
-		float raw_value = srf05.timer_counter / 58.0;
-		kalman_update(&kalman_filter, raw_value);
-		srf05.value = kalman_filter.x;
+		double raw_value = srf05.timer_counter / 58.0;
+//		kalman_update(&kalman_filter, raw_value);
+//		srf05.value = kalman_filter.x;
+		srf05.value = raw_value;
 		srf05.new_data = 1;
 
 		srf05.need_perform = 0;
@@ -145,7 +146,7 @@ static uint8_t srf05_perform(void)
  */
 static void srf05_init(void)
 {
-	kalman_init(&kalman_filter, 1.0, 20.0, 1.0, 0);
+	kalman_init(&kalman_filter, 40.0, 70.0, 40.0, 0);
 	srf05_gen_pulse();
 }
 

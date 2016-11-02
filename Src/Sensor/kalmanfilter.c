@@ -1,7 +1,7 @@
 #include "kalmanfilter.h"
 
-void kalman_init(kalman_state* state, float q, float r, float p,
-		float intial_value)
+void kalman_init(kalman_state* state, double q, double r, double p,
+		double intial_value)
 {
 	state->q = q;
 	state->r = r;
@@ -9,7 +9,7 @@ void kalman_init(kalman_state* state, float q, float r, float p,
 	state->x = intial_value;
 }
 
-void kalman_update(kalman_state* state, float measurement)
+void kalman_update(kalman_state* state, double measurement)
 {
 	if (state->is_initialized)
 	{
