@@ -2,7 +2,12 @@
 #define __SRF_05_H__
 
 #include "stm32f1xx_hal.h"
-#include "mxconstants.h"
+
+#define SRF05_ECHO_Pin GPIO_PIN_6
+#define SRF05_ECHO_GPIO_Port GPIOA
+#define SRF05_TRIGGER_Pin GPIO_PIN_7
+#define SRF05_TRIGGER_GPIO_Port GPIOA
+#define __HAL_RCC_GPIOSRF05_CLK_ENABLE __HAL_RCC_GPIOA_CLK_ENABLE
 
 typedef enum {
 	ECHO_GOES_HIGH,

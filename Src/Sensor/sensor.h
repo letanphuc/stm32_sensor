@@ -17,11 +17,14 @@ typedef struct _sensor
 	float (*get_data)(void); /*!< get the latest data */
 	uint8_t (*perform)(void); /*!< will be call in main loop, it is need to perform filter because this
 							activity will take time, can not call in interrupt function */
+	void (*timer2_callback) (void);
+	void (*gpio_callback) (void);
+
+	void (*data_available_callback)(void);
 } sensor_t;
 
-extern const sensor_t sensor;
-extern void (*timer_callback) (void);
-extern void (*gpio_callback) (void);
+extern sensor_t sensor;
+
 
 void StartSensorTask(void const * argument);
 

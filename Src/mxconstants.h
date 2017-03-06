@@ -44,10 +44,7 @@
 #define SIGNAL_LED_Pin GPIO_PIN_0
 #define SIGNAL_LED_GPIO_Port GPIOA
 
-#define SRF05_ECHO_Pin GPIO_PIN_6
-#define SRF05_ECHO_GPIO_Port GPIOA
-#define SRF05_TRIGGER_Pin GPIO_PIN_7
-#define SRF05_TRIGGER_GPIO_Port GPIOA
+
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

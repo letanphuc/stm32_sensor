@@ -13,10 +13,8 @@ struct _srf05 srf05 = {
 	0
 };
 
-extern TIM_HandleTypeDef htim2;
-extern osThreadId defaultTaskHandle;
+TIM_HandleTypeDef htim2;
 void Error_Handler(void);
-
 kalman_state kalman_filter;
 
 /**
@@ -79,8 +77,8 @@ void srf05_handle_event(event_t event)
 				srf05.state = STATE_S0;
 			}
 
-
-			osSignalSet(defaultTaskHandle, 0x0001);
+			if (sensor.data_available_callback)
+				sensor.data_available_callback();
 
 		}
 		else if (event == TIMEOUT)
@@ -146,19 +144,62 @@ static uint8_t srf05_perform(void)
  */
 static void srf05_init(void)
 {
+	GPIO_InitTypeDef GPIO_InitStruct;
+
+	/** GPIO initializing */
+	__HAL_RCC_GPIOSRF05_CLK_ENABLE();
+
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(SRF05_TRIGGER_GPIO_Port, SRF05_TRIGGER_Pin,
+			GPIO_PIN_RESET);
+
+	/*Configure GPIO pin : SRF05_ECHO_Pin */
+	GPIO_InitStruct.Pin = SRF05_ECHO_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(SRF05_ECHO_GPIO_Port, &GPIO_InitStruct);
+
+	/*Configure GPIO pin : SRF05_TRIGGER_Pin */
+	GPIO_InitStruct.Pin = SRF05_TRIGGER_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+	HAL_GPIO_Init(SRF05_TRIGGER_GPIO_Port, &GPIO_InitStruct);
+
+	/* EXTI interrupt init*/
+	HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
+	HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+
+	/** timer 2 initializing */
+	TIM_ClockConfigTypeDef sClockSourceConfig;
+	TIM_MasterConfigTypeDef sMasterConfig;
+
+	htim2.Instance = TIM2;
+	htim2.Init.Prescaler = 12;
+	htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+	htim2.Init.Period = CALIB_TIMER;
+	htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	if (HAL_TIM_Base_Init(&htim2) != HAL_OK) {
+		Error_Handler();
+	}
+
+	sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+	if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK) {
+		Error_Handler();
+	}
+
+	sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+	if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig)
+			!= HAL_OK) {
+		Error_Handler();
+	}
+
+	HAL_TIM_Base_Start_IT(&htim2);
+
 	kalman_init(&kalman_filter, 40.0, 70.0, 40.0, 0);
 	srf05_gen_pulse();
 }
 
-
-const sensor_t sensor =
-{
-	"Ultrasonic",
-	srf05_init,
-	srf05_new_data,
-	srf05_get_data,
-	srf05_perform
-}; /*< sensor variable for main function */
 
 void srf05_timer_callback()
 {
@@ -175,7 +216,20 @@ void srf05_gpio_callback()
 void (*timer_callback) (void) = srf05_timer_callback;
 void (*gpio_callback) (void) = srf05_gpio_callback;
 
-__weak void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	gpio_callback();
 }
+
+sensor_t sensor =
+{
+	"Ultrasonic",
+	srf05_init,
+	srf05_new_data,
+	srf05_get_data,
+	srf05_perform,
+	srf05_timer_callback,
+	srf05_gpio_callback,
+	NULL
+}; /*< sensor variable for main function */
+

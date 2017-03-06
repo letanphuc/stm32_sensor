@@ -1181,6 +1181,15 @@
         </file>
       </group>
       <group>
+        <name>Leds</name>
+        <file>
+          <name>$PROJ_DIR$\..\Src\Leds\leds.c</name>
+        </file>
+        <file>
+          <name>$PROJ_DIR$\..\Src\Leds\leds.h</name>
+        </file>
+      </group>
+      <group>
         <name>OS</name>
         <file>
           <name>$PROJ_DIR$\..\Src\OS\freertos.c</name>
