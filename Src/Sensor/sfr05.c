@@ -223,7 +223,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
 sensor_t sensor =
 {
-	"Ultrasonic",
+	"Ultrasonic|cm", /** name|unit */
 	srf05_init,
 	srf05_new_data,
 	srf05_get_data,

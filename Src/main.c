@@ -40,16 +40,17 @@
 
 /* Private variables ---------------------------------------------------------*/
 osThreadId sensorTaskHandle;
-
-/* Private variables ---------------------------------------------------------*/
+osThreadId cmdHandleTaskHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void Error_Handler(void);
 void StartSensorTask(void const * argument);
+void StartCmdHandleTask(void const * argument);
 
 
-int main(void) {
+int main(void)
+{
 
 	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
 	HAL_Init();
@@ -58,18 +59,23 @@ int main(void) {
 	SystemClock_Config();
 
 	osThreadDef(sensorTask, StartSensorTask, osPriorityNormal, 0, 128);
+	osThreadDef(cmdHandleTask, StartCmdHandleTask, osPriorityNormal, 0, 128);
 	sensorTaskHandle = osThreadCreate(osThread(sensorTask), NULL);
+	cmdHandleTaskHandle = osThreadCreate(osThread(cmdHandleTask), NULL);
 
 	/* Start scheduler */
 	osKernelStart();
 
-	while(1);
+	while (1)
+	{
+	}
 
 }
 
 /** System Clock Configuration
  */
-void SystemClock_Config(void) {
+void SystemClock_Config(void)
+{
 
 	RCC_OscInitTypeDef RCC_OscInitStruct;
 	RCC_ClkInitTypeDef RCC_ClkInitStruct;
@@ -81,7 +87,8 @@ void SystemClock_Config(void) {
 	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
 	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
 	RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL3;
-	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+	{
 		Error_Handler();
 	}
 
@@ -91,13 +98,15 @@ void SystemClock_Config(void) {
 	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV4;
 	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
 	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK) {
+	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+	{
 		Error_Handler();
 	}
 
 	PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB;
 	PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL;
-	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
+	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+	{
 		Error_Handler();
 	}
 
@@ -109,48 +118,50 @@ void SystemClock_Config(void) {
 	HAL_NVIC_SetPriority(SysTick_IRQn, 15, 0);
 }
 
-
-char* itoa(int i, char * b) {
-	char const digit[] = "0123456789";
-	char* p = b;
-	if (i < 0) {
-		*p++ = '-';
-		i *= -1;
-	}
-	int shifter = i;
-	do {
-		++p;
-		shifter = shifter / 10;
-	} while (shifter);
-	*p = '\n';
-	*(p + 1) = '\r';
-	*(p + 2) = '\0';
-	do {
-		*--p = digit[i % 10];
-		i = i / 10;
-	} while (i);
-	return b;
-}
-
 void sensor_data_callback(void)
 {
 	osSignalSet(sensorTaskHandle, 0x0001);
 }
+
+void StartCmdHandleTask(void const * argument)
+{
+	static uint8_t buff[64];
+	const int len = strlen((const char*)sensor.type);
+	buff[0] = 0x14;
+	memcpy(buff + 1, sensor.type, len);
+	buff[len + 1] = 0x14;
+
+	for (;;)
+	{
+		osDelay(1000);
+		/** Send sensor info every 1 second */
+		CDC_Transmit_FS((uint8_t*)buff, len + 2);
+		led_toggle(LED_GREEN);
+	}
+}
+
 /* StartSensorTask function */
-void StartSensorTask(void const * argument) {
+void StartSensorTask(void const * argument)
+{
+	uint8_t buff[6];
+        buff[0] = buff[5] = 0x15;
+        float * f = (float *)(buff + 1);
+        
+	led_init();
 	osDelay(1000);
 	MX_USB_DEVICE_Init();
 	sensor.init();
+	/* set callback function when data is available */
 	sensor.data_available_callback = sensor_data_callback;
-	led_init();
 
-	for (;;) {
+	for (;;)
+	{
 		__IO osEvent e = osSignalWait(0x0001, 1000);
 		while (e.status != osEventSignal)
 			e = osSignalWait(0x0001, 1000);
 		sensor.perform();
-		float f = sensor.get_data();
-		CDC_Transmit_FS((uint8_t*) &f, sizeof(f));
+		*f = sensor.get_data();
+		CDC_Transmit_FS((uint8_t*) &buff, sizeof(buff));
 		led_toggle(LED_RED);
 	}
 
@@ -164,12 +175,15 @@ void StartSensorTask(void const * argument) {
  * @param  htim : TIM handle
  * @retval None
  */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
 
-	if (htim->Instance == TIM3) {
+	if (htim->Instance == TIM3)
+	{
 		HAL_IncTick();
 	}
-	if (htim->Instance == TIM2) {
+	if (htim->Instance == TIM2)
+	{
 		sensor.timer2_callback();
 	}
 
@@ -180,10 +194,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
  * @param  None
  * @retval None
  */
-void Error_Handler(void) {
+void Error_Handler(void)
+{
 	/* USER CODE BEGIN Error_Handler */
 	/* User can add his own implementation to report the HAL error return state */
-	while (1) {
+	while (1)
+	{
 	}
 	/* USER CODE END Error_Handler */
 }
@@ -197,7 +213,8 @@ void Error_Handler(void) {
  * @param line: assert_param error line source number
  * @retval None
  */
-void assert_failed(uint8_t* file, uint32_t line) {
+void assert_failed(uint8_t* file, uint32_t line)
+{
 	/* USER CODE BEGIN 6 */
 	/* User can add his own implementation to report the file name and line number,
 	 ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
